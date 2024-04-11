@@ -1,9 +1,9 @@
-import pyspacemouse
+import spacenavigator
 import time
 
-success = pyspacemouse.open()
+success = spacenavigator.open()
 if success:
     while 1:
-        state = pyspacemouse.read()
+        state = spacenavigator.read()
         print(state.x, state.y, state.z)
         time.sleep(0.01)
