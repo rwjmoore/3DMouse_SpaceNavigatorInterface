@@ -1,1 +1,1 @@
-from spacenavigator import *
+from spacenav import *

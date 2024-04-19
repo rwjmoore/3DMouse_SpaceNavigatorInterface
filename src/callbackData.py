@@ -1,4 +1,4 @@
-import spacenavigator
+import spacenav
 from collections import namedtuple
 import time
 import threading 
@@ -50,12 +50,12 @@ def callback():
     #               spacenavigator.ButtonCallback([0, 1], button_0_1), ]
     global i
     global relativePose
-    success = spacenavigator.open()
+    success = spacenav.open()
     print("\n\nSpaceNavigator3DPose")
 
     if success:
         while True:
-            state = spacenavigator.read()
+            state = spacenav.read()
             with lock:
                 relativePose = state
                 i += 1
