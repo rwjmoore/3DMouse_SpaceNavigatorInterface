@@ -2,6 +2,8 @@ import spacenav
 from collections import namedtuple
 import time
 import threading 
+import numpy as np
+import matplotlib.pyplot as plt
 
 # -------------> Defining DataStructure for 6DOF Mouse Input <-------------------
 dict_state = {
@@ -20,6 +22,7 @@ SpaceNavigator = namedtuple(
     "SpaceNavigator", ["t", "x", "y", "z", "roll", "pitch", "yaw", "buttons"]
 )
 relativePose =SpaceNavigator(**dict_state)
+relativePose_np = np.zeros(6)
 # ------------->                    End                     <-------------------
 
 i = 0
@@ -63,12 +66,63 @@ def callback():
 
 # ------------->                End                   <-------------------
 
+# -------------> Signal Processing Functions <--------------------
+def mapMouseToPose(state):
+    pose = np.zeros(6)
 
+    d = 0.05 #deadband threshold
+    beta = 0.5 #cubic sensitivity parameter 
+    #map deadbands 
+    pose[0] = deadBand(state.x,d,beta)
+    pose[1] = deadBand(state.y,d,beta)
+    pose[2] = deadBand(state.z,d,beta)
+    pose[3] = deadBand(state.pitch,d,beta)
+    pose[4] = deadBand(state.yaw,d,beta)
+    pose[5] = deadBand(state.roll,d,beta)
 
+    #scale and map to holoLens coordinate system
+    k_poseTrans = 0.005 #gain for pose translation 
+    pose[0] = k_poseTrans*state.x
+    pose[1] = k_poseTrans*state.y
+    pose[2] = k_poseTrans*state.z
+    #map linear region [-1,1] to [-10,10] degrees 
+    k_poseRot = 10
+    pose[3] =  k_poseRot*state.roll
+    pose[4] =  k_poseRot*state.pitch
+    pose[5] =  k_poseRot*state.yaw
+
+    return pose
+
+#d = threshold for deadband region , beta is cubic sensitivity transformation parameter 
+def deadBand(x, d, beta):
+    if abs(x) < d:
+        return 0 
+    return ( cubicSensitivtyFunction(x,beta) -  np.sign(x)*cubicSensitivtyFunction(d,beta) ) / ( 1 - cubicSensitivtyFunction(d,beta) )
+    
+
+def cubicSensitivtyFunction(x,beta):
+    return beta*x**3 + (1 - beta)*x
+
+#TEST FUNCTION
+def generateRange(start, end, step):
+    num = np.linspace(start, end,(end-start)
+                      *int(1/step)+1).tolist()
+    return [round(i, 2) for i in num]
+# ------------> Signal Processing Functions End <-------------------
 
 
 # ----->                    Main Loop           <-----------
 if __name__ == '__main__':
+
+    #TEST FOR MAPPING ACCURACY
+    #output mapping visualization 
+    x = generateRange(-1,1,0.0001)
+    y = [] 
+    for i in range(1,len(x)):
+        y.append(deadBand(x[i],0.1,0.5))
+    plt.plot(y)
+    plt.show()
+
     t1 = threading.Thread(target=callback)
     t1.daemon = True
     t1.start()
@@ -76,7 +130,7 @@ if __name__ == '__main__':
         while True:
             with lock:
                 print3DmouseState(relativePose)
-                # print(i)
+                
             time.sleep(0.001)
     except KeyboardInterrupt:
         pass
