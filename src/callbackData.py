@@ -27,6 +27,7 @@ relativePose_np = np.zeros(6)
 
 i = 0
 lock = threading.Lock()
+translationLock = False
 
 # ------------->                Callbacks                   <-------------------
 
@@ -53,6 +54,7 @@ def callback():
     #               spacenavigator.ButtonCallback([0, 1], button_0_1), ]
     global i
     global relativePose
+    global translationLock
     success = spacenav.open()
     print("\n\nSpaceNavigator3DPose")
 
@@ -60,14 +62,34 @@ def callback():
         while True:
             state = spacenav.read()
             with lock:
+                if state.buttons[0] == 1:
+                    translationLock = True 
+                if state.buttons[1] == 1:
+                    translationLock = False
+                if translationLock == True:
+                    relativePose_np[0] = 0
+                    relativePose_np[1] = 0
+                    relativePose_np[2] = 0
+                    relativePose_np[3] = state.roll
+                    relativePose_np[4] = state.pitch
+                    relativePose_np[5] = state.yaw
+                else: 
+                    relativePose_np[0] = state.x
+                    relativePose_np[1] = state.y
+                    relativePose_np[2] = state.z
+                    relativePose_np[3] = state.roll
+                    relativePose_np[4] = state.pitch
+                    relativePose_np[5] = state.yaw
+                print(translationLock)
                 relativePose = state
+                
                 i += 1
             time.sleep(0.01)
 
 # ------------->                End                   <-------------------
 
 # -------------> Signal Processing Functions <--------------------
-def mapMouseToPose(state):
+def mapMouseToPose(state,translationLock):
     pose = np.zeros(6)
 
     d = 0.05 #deadband threshold
@@ -91,6 +113,9 @@ def mapMouseToPose(state):
     pose[4] =  k_poseRot*state.pitch
     pose[5] =  k_poseRot*state.yaw
 
+    if translationLock:
+        pose[0:3] =[ 0.0,0.0,0.0]
+
     return pose
 
 #d = threshold for deadband region , beta is cubic sensitivity transformation parameter 
@@ -102,6 +127,8 @@ def deadBand(x, d, beta):
 
 def cubicSensitivtyFunction(x,beta):
     return beta*x**3 + (1 - beta)*x
+
+
 
 #TEST FUNCTION
 def generateRange(start, end, step):
@@ -128,9 +155,9 @@ if __name__ == '__main__':
     t1.start()
     try: 
         while True:
-            with lock:
-                print3DmouseState(relativePose)
-                
+            # print3DmouseState(relativePose)
+            # print(relativePose_np)
+            print(relativePose_np,end='\r', flush=True )   
             time.sleep(0.001)
     except KeyboardInterrupt:
         pass

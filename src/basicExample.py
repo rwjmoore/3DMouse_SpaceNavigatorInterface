@@ -2,6 +2,7 @@ import spacenav
 import time
 
 success = spacenav.open(device = "SpaceMouse Navigator For Notebooks")
+spacenav.set_led(0)
 if success:
     try:
         while 1:
@@ -11,7 +12,7 @@ if success:
             # print(state)
             time.sleep(0.01)
     except:
-        # spacenavigator.set_led(0)
+        
         print("error")
 
 
